@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
 
 namespace CefDetector
 
@@ -21,7 +20,9 @@ namespace CefDetector
                 return;
             }
 
-            ApplicationConfiguration.Initialize();
+            Application.SetHighDpiMode(HighDpiMode.SystemAware);
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
             try
             {
                 var wplayer = new WMPLib.WindowsMediaPlayer
