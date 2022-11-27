@@ -8,7 +8,7 @@ Check how many CEFs are on your Windows.
 
 ## 截屏
 
-![Screenshot](./screenshots/screenshot.png)
+![Screenshot](./screenshot.png)
 
 ## 使用
 
