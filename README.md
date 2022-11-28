@@ -1,5 +1,7 @@
 # CEF Detector - 一眼CEF: 年轻人的第一款 Windows CEF检测器
 
+**【Electron版本已发布! 提供更多功能并增强稳定性: [CefDetectorX](https://github.com/ShirasawaSama/CefDetectorX)】**
+
 Check how many CEFs are on your Windows.
 
 看看你电脑 **(Windows)** 上有多少个 [CEF (Chromium Embedded Framework)](https://bitbucket.org/chromiumembedded/cef/).
