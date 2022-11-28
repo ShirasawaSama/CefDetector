@@ -25,12 +25,14 @@ namespace CefDetector
         private static readonly byte[] LIBCEF = Encoding.ASCII.GetBytes("cef_string_utf8_to_utf16"),
             ELECTRON = Encoding.ASCII.GetBytes("third_party/electron_node"),
             ELECTRON2 = Encoding.ASCII.GetBytes("register_atom_browser_web_contents"),
-            CEF_SHARP = Encoding.ASCII.GetBytes("CefSharp.Internals");
+            CEF_SHARP = Encoding.ASCII.GetBytes("CefSharp.Internals"),
+            NWJS = Encoding.ASCII.GetBytes("url-nwjs");
 
         private readonly HashSet<string> processes = new();
         private int cnt = 0;
         private long totalSize = 0;
         private readonly string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        private readonly HashSet<string> cache = new();
 
         private static bool Contains(byte[] file, byte[] search)
         {
@@ -71,6 +73,8 @@ namespace CefDetector
 
         private void AddIcon(string fileName, string? type)
         {
+            if (cache.Contains(fileName)) return;
+            cache.Add(fileName);
             var name = (type ?? "Unknown: ") + Path.GetFileName(fileName);
             Debug.WriteLine(name);
             var button = new System.Windows.Forms.Button
@@ -138,7 +142,7 @@ namespace CefDetector
                     }
                     catch { }
                 }
-                Everything_SetSearchW("v8_context_snapshot.bin");
+                Everything_SetSearchW("_percent.pak");
                 Everything_SetRequestFlags(EVERYTHING_REQUEST_PATH | EVERYTHING_REQUEST_FILE_NAME);
                 Everything_QueryW(true);
                 var buf = new StringBuilder(260);
@@ -152,8 +156,10 @@ namespace CefDetector
                     buf.Clear();
                     Everything_GetResultFullPathName(i, buf, 260);
 
-                    if (File.GetAttributes(buf.ToString()).HasFlag(FileAttributes.Directory)) continue;
                     var path = Path.GetDirectoryName(buf.ToString())!;
+                    if (cache.Contains(path) || File.GetAttributes(buf.ToString()).HasFlag(FileAttributes.Directory) ||
+                        path.Contains("$RECYCLE.BIN") || path.Contains("OneDrive")) continue;
+                    cache.Add(path);
                     bool flag = false;
                     string? firstExe = null;
                     var search = (string path) =>
@@ -175,12 +181,12 @@ namespace CefDetector
                             }
                             foreach (var it in Directory.GetFiles(path, "*.exe"))
                             {
-                                Debug.WriteLine(it);
                                 string type;
                                 var data = File.ReadAllBytes(it);
                                 var fileName = Path.GetFileName(it);
                                 if (Contains(data, ELECTRON) || Contains(data, ELECTRON2)) type = "Electron: ";
                                 else if (Contains(data, CEF_SHARP)) type = "CefSharp: ";
+                                else if (Contains(data, NWJS)) type = "NWJS: ";
                                 else if (Contains(data, LIBCEF)) type = "CEF: ";
                                 else if (firstExe == null && !fileName.Contains("uninst", StringComparison.OrdinalIgnoreCase) &&
                                     !fileName.Contains("setup", StringComparison.OrdinalIgnoreCase) &&
