@@ -122,11 +122,80 @@ namespace CefDetector
             }));
         }
 
-        private void FolderSize(DirectoryInfo folder)
+        private void FolderSize(DirectoryInfo folder, int deep = 0)
         {
+            if (deep > 10) return;
             FileInfo[] allFiles = folder.GetFiles();
             foreach (FileInfo file in allFiles) totalSize += file.Length;
-            foreach (DirectoryInfo dir in folder.GetDirectories()) FolderSize(dir);
+            foreach (DirectoryInfo dir in folder.GetDirectories()) FolderSize(dir, deep + 1);
+        }
+
+        private void SearchResult(string defaultType = "Unknown: ")
+        {
+            var buf = new StringBuilder(260);
+            for (uint i = 0; i < Everything_GetNumResults(); i++)
+            {
+                buf.Clear();
+                Everything_GetResultFullPathName(i, buf, 260);
+
+                var path = Path.GetDirectoryName(buf.ToString())!;
+                if (cache.Contains(path) || File.GetAttributes(buf.ToString()).HasFlag(FileAttributes.Directory) ||
+                    path.Contains("$RECYCLE.BIN") || path.Contains("OneDrive")) continue;
+                cache.Add(path);
+                bool flag = false;
+                string? firstExe = null;
+                var search = (string path) =>
+                {
+                    try
+                    {
+                        var f = Path.Join(path, "msedge.exe");
+                        if (File.Exists(f))
+                        {
+                            flag = true;
+                            AddIcon(f, "Edge: ");
+                            return;
+                        }
+                        if (File.Exists(f = Path.Join(path, "chrome_pwa_launcher.exe")) && File.Exists(f = Path.Join(path, "../chrome.exe")))
+                        {
+                            flag = true;
+                            AddIcon(f, "Chrome: ");
+                            return;
+                        }
+                        foreach (var it in Directory.GetFiles(path, "*.exe"))
+                        {
+                            string type;
+                            var data = File.ReadAllBytes(it);
+                            var fileName = Path.GetFileName(it);
+                            if (Contains(data, ELECTRON) || Contains(data, ELECTRON2)) type = "Electron: ";
+                            else if (Contains(data, CEF_SHARP)) type = "CefSharp: ";
+                            else if (Contains(data, NWJS)) type = "NWJS: ";
+                            else if (Contains(data, LIBCEF)) type = "CEF: ";
+                            else if (firstExe == null && !fileName.Contains("uninst", StringComparison.OrdinalIgnoreCase) &&
+                                !fileName.Contains("setup", StringComparison.OrdinalIgnoreCase) &&
+                                !fileName.Contains("report", StringComparison.OrdinalIgnoreCase))
+                            {
+                                firstExe = it;
+                                continue;
+                            }
+                            else continue;
+                            flag = true;
+                            AddIcon(it, type);
+                        }
+                    }
+                    catch { }
+                };
+                search(path);
+                if (!flag)
+                {
+                    if (firstExe == null)
+                    {
+                        search(Path.GetDirectoryName(path)!);
+                        if (firstExe == null) AddIcon(path, null);
+                        else AddIcon(firstExe, defaultType);
+                    }
+                    else AddIcon(firstExe, defaultType);
+                }
+            }
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -148,75 +217,18 @@ namespace CefDetector
                     Everything_SetSearchW("_percent.pak");
                     Everything_SetRequestFlags(EVERYTHING_REQUEST_PATH | EVERYTHING_REQUEST_FILE_NAME);
                     Everything_QueryW(true);
-                    var buf = new StringBuilder(260);
+
                     Invoke(new MethodInvoker(delegate
                     {
                         label.Text = "这台电脑上总共有 0 个 Chromium 内核的应用";
                         CalcLabelPos();
                     }));
-                    for (uint i = 0; i < Everything_GetNumResults(); i++)
-                    {
-                        buf.Clear();
-                        Everything_GetResultFullPathName(i, buf, 260);
 
-                        var path = Path.GetDirectoryName(buf.ToString())!;
-                        if (cache.Contains(path) || File.GetAttributes(buf.ToString()).HasFlag(FileAttributes.Directory) ||
-                            path.Contains("$RECYCLE.BIN") || path.Contains("OneDrive")) continue;
-                        cache.Add(path);
-                        bool flag = false;
-                        string? firstExe = null;
-                        var search = (string path) =>
-                        {
-                            try
-                            {
-                                var f = Path.Join(path, "msedge.exe");
-                                if (File.Exists(f))
-                                {
-                                    flag = true;
-                                    AddIcon(f, "Edge: ");
-                                    return;
-                                }
-                                if (File.Exists(f = Path.Join(path, "chrome_pwa_launcher.exe")) && File.Exists(f = Path.Join(path, "../chrome.exe")))
-                                {
-                                    flag = true;
-                                    AddIcon(f, "Chrome: ");
-                                    return;
-                                }
-                                foreach (var it in Directory.GetFiles(path, "*.exe"))
-                                {
-                                    string type;
-                                    var data = File.ReadAllBytes(it);
-                                    var fileName = Path.GetFileName(it);
-                                    if (Contains(data, ELECTRON) || Contains(data, ELECTRON2)) type = "Electron: ";
-                                    else if (Contains(data, CEF_SHARP)) type = "CefSharp: ";
-                                    else if (Contains(data, NWJS)) type = "NWJS: ";
-                                    else if (Contains(data, LIBCEF)) type = "CEF: ";
-                                    else if (firstExe == null && !fileName.Contains("uninst", StringComparison.OrdinalIgnoreCase) &&
-                                        !fileName.Contains("setup", StringComparison.OrdinalIgnoreCase) &&
-                                        !fileName.Contains("report", StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        firstExe = it;
-                                        continue;
-                                    }
-                                    else continue;
-                                    flag = true;
-                                    AddIcon(it, type);
-                                }
-                            }
-                            catch { }
-                        };
-                        search(path);
-                        if (!flag)
-                        {
-                            if (firstExe == null)
-                            {
-                                search(Path.GetDirectoryName(path)!);
-                                if (firstExe == null) AddIcon(path, null);
-                                else AddIcon(firstExe, "Unknown: ");
-                            }
-                            else AddIcon(firstExe, "Unknown: ");
-                        }
-                    }
+                    SearchResult();
+
+                    Everything_SetSearchW("libcef");
+                    Everything_QueryW(true);
+                    SearchResult("CEF: ");
                 } finally
                 {
                     Invoke(new MethodInvoker(delegate
