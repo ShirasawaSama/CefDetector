@@ -1,4 +1,4 @@
-using System.Text;
+ï»¿using System.Text;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 
@@ -116,7 +116,7 @@ namespace CefDetector
             }
             Invoke(new MethodInvoker(delegate
             {
-                label.Text = $"ÕâÌ¨µçÄÔÉÏ×Ü¹²ÓĞ {cnt} ¸ö Chromium ÄÚºËµÄÓ¦ÓÃ ({String.Format("{0:0.##}{1}", len, sizes[order])})";
+                label.Text = $"è¿™å°ç”µè„‘ä¸Šæ€»å…±æœ‰ {cnt} ä¸ª Chromium å†…æ ¸çš„åº”ç”¨ ({String.Format("{0:0.##}{1}", len, sizes[order])})";
                 CalcLabelPos();
                 apps.Controls.Add(panel);
             }));
@@ -125,9 +125,22 @@ namespace CefDetector
         private void FolderSize(DirectoryInfo folder, int deep = 0)
         {
             if (deep > 10) return;
-            FileInfo[] allFiles = folder.GetFiles();
-            foreach (FileInfo file in allFiles) totalSize += file.Length;
-            foreach (DirectoryInfo dir in folder.GetDirectories()) FolderSize(dir, deep + 1);
+            try
+            {
+                FileInfo[] allFiles = folder.GetFiles();
+                foreach (FileInfo file in allFiles) try
+                    {
+                        totalSize += file.Length;
+                    }
+                    catch (Exception)
+                    {
+                    }
+                foreach (DirectoryInfo dir in folder.GetDirectories()) FolderSize(dir, deep + 1);
+            }
+            catch (Exception)
+            {
+                return;
+            }
         }
 
         private void SearchResult(string defaultType = "Unknown: ")
@@ -220,7 +233,7 @@ namespace CefDetector
 
                     Invoke(new MethodInvoker(delegate
                     {
-                        label.Text = "ÕâÌ¨µçÄÔÉÏ×Ü¹²ÓĞ 0 ¸ö Chromium ÄÚºËµÄÓ¦ÓÃ";
+                        label.Text = "è¿™å°ç”µè„‘ä¸Šæ€»å…±æœ‰ 0 ä¸ª Chromium å†…æ ¸çš„åº”ç”¨";
                         CalcLabelPos();
                     }));
 
@@ -234,7 +247,7 @@ namespace CefDetector
                     Invoke(new MethodInvoker(delegate
                     {
                         label.ForeColor = Color.Green;
-                        if (cnt == 0) label.Text = "ÕâÌ¨µçÄÔÉÏÃ»ÓĞ Chromium ÄÚºËµÄÓ¦ÓÃ (Ò²¿ÉÄÜÊÇÄãÃ»×° Everything)";
+                        if (cnt == 0) label.Text = "è¿™å°ç”µè„‘ä¸Šæ²¡æœ‰ Chromium å†…æ ¸çš„åº”ç”¨ (ä¹Ÿå¯èƒ½æ˜¯ä½ æ²¡è£… Everything)";
                     }));
                 }
             }).Start();
